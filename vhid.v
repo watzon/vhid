@@ -95,7 +95,7 @@ pub fn enumerate(vendorID u16, productID u16) ![]DeviceInfo {
 	return infos
 }
 
-// Open connects to an HID device by its path n
+// Connect to an HID device using the DeviceInfo struct obtained from `enumerate`.
 pub fn (mut info DeviceInfo) open() !&Device {
 	info.mutex.@lock()
 	defer { info.mutex.unlock() }
@@ -103,6 +103,22 @@ pub fn (mut info DeviceInfo) open() !&Device {
 	mut device := C.hid_open_path(path)
 	if device == unsafe { nil } {
 		return error(err_failed_to_open_device)
+	}
+	return &Device{
+		info: info
+		device: device
+	}
+}
+
+// Connect to an HID device using its path.
+pub fn open_path(path string) !&Device {
+	mut device := C.hid_open_path(path.str)
+	if device == unsafe { nil } {
+		return error(err_failed_to_open_device)
+	}
+	mut info := DeviceInfo{
+		path: path
+		mutex: sync.new_rwmutex()
 	}
 	return &Device{
 		info: info
